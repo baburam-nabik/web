@@ -1,38 +1,115 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="/">
+  <!-- ✅ Correct base path for Vercel -->
+  <base href="/" />
 
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <meta name="description" content="Flutter Web App with FCM">
 
-  <!-- iOS meta tags & icons -->
+  <!-- Mobile PWA meta -->
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="gg">
+  <meta name="apple-mobile-web-app-title" content="fml">
+
+  <!-- Icons -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <!-- Google Maps JS API -->
+  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAK_1GcvSa0HzN1hOzpeKjmrEKWqyA3OxA&loading=async&libraries=places"></script>
 
-  <title>gg</title>
-  <link rel="manifest" href="manifest.json">
+  <!-- Firebase (modular v9) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getMessaging, getToken, onMessage, isSupported } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAK_1GcvSa0HzN1hOzpeKjmrEKWqyA3OxA",
+      authDomain: "fmlapp-164308.firebaseapp.com",
+      projectId: "fmlapp-164308",
+      storageBucket: "fmlapp-164308.appspot.com",
+      messagingSenderId: "191414083868",
+      appId: "1:191414083868:web:3ff379f63efc397ed91ad9",
+      measurementId: "G-CSPSGMKYY0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+
+    // ✅ Defer FCM init until Flutter is ready
+    window.startFCM = () => {
+      isSupported().then((supported) => {
+        if (!supported) {
+          console.warn("⚠️ FCM not supported in this browser.");
+          return;
+        }
+
+        const messaging = getMessaging(app);
+
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.register("firebase-messaging-sw.js")
+            .then(async (registration) => {
+              console.log("✅ SW registered:", registration.scope);
+              await navigator.serviceWorker.ready;
+
+              const permission = await Notification.requestPermission();
+              if (permission === "granted") {
+                try {
+                  const token = await getToken(messaging, {
+                    vapidKey: "BD5l4A7btFUkfgjSd_K0Yz2BrYJd1nC5xfhrEHnXk7qTif74ltnPghIGe1tSR2ZhdCrQpV1DW8jGMl7t2lzZ73k",
+                    serviceWorkerRegistration: registration
+                  });
+                  console.log("🔑 FCM Token:", token);
+                } catch (err) {
+                  console.error("❌ Error getting FCM token:", err);
+                }
+              }
+            })
+            .catch((err) => {
+              console.error("❌ SW registration failed:", err);
+            });
+        }
+
+        onMessage(messaging, (payload) => {
+          console.log("📩 Foreground message:", payload);
+        });
+      });
+    };
+  </script>
+
+  <!-- Splash styles -->
+  <style id="splash-screen-style">
+    html, body { margin:0; height:100%; background:#ffffff; }
+    .center {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%, -50%);
+    }
+  </style>
+
+  <script id="splash-screen-script">
+    function removeSplashFromWeb() {
+      document.getElementById("splash")?.remove();
+      document.body.style.background = "transparent";
+
+      // ✅ Start FCM only after splash removal (Flutter ready)
+      if (window.startFCM) {
+        window.startFCM();
+      }
+    }
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+<picture id="splash">
+  <source srcset="splash/img/light-1x.png 1x, splash/img/light-2x.png 2x" media="(prefers-color-scheme: light)">
+  <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x" media="(prefers-color-scheme: dark)">
+  <img class="center" src="splash/img/light-1x.png" alt="Splash">
+</picture>
+
+<!-- ✅ Flutter bootstrap -->
+<script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
